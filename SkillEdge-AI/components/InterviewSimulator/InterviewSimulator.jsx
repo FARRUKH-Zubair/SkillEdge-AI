@@ -16,6 +16,9 @@ export default function InterviewSimulatorWithVoice() {
   const [spoken, setSpoken] = useState(false);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
   const [hoveredButton, setHoveredButton] = useState(null);
+  const [timeLeft, setTimeLeft] = useState(180); // 3 minutes in seconds
+  const [timerActive, setTimerActive] = useState(false);
+  const timerRef = useRef(null);
   const recognitionRef = useRef(null);
   const videoRef = useRef(null);
   const router = useRouter();
@@ -75,11 +78,10 @@ export default function InterviewSimulatorWithVoice() {
     const text = qs[index];
     setSpoken(false);
     setAnswer("");
+    setTimeLeft(180); // Reset timer for new question
     setCountdown(3);
     for (let i = 3; i > 0; i--) {
       setCountdown(i);
-      // pause 1s
-      // eslint-disable-next-line no-await-in-loop
       await new Promise((res) => setTimeout(res, 1000));
     }
     setCountdown(null);
@@ -98,14 +100,27 @@ export default function InterviewSimulatorWithVoice() {
       return;
     }
 
+    if (timeLeft <= 0) {
+      alert("You have used all your time for this question!");
+      return;
+    }
+
     const recognition = new webkitSpeechRecognition();
     recognitionRef.current = recognition;
     recognition.continuous = true;
     recognition.interimResults = false;
     recognition.lang = "en-US";
 
-    recognition.onstart = () => setTranscribing(true);
-    recognition.onend = () => setTranscribing(false);
+    recognition.onstart = () => {
+      setTranscribing(true);
+      setTimerActive(true);
+      startTimer();
+    };
+    recognition.onend = () => {
+      setTranscribing(false);
+      setTimerActive(false);
+      stopTimer();
+    };
     recognition.onerror = (e) => console.error("Speech error:", e);
 
     recognition.onresult = (e) => {
@@ -123,8 +138,43 @@ export default function InterviewSimulatorWithVoice() {
   const stopListening = () => {
     recognitionRef.current?.stop();
     setTranscribing(false);
+    setTimerActive(false);
+    stopTimer();
     setSpoken(true);
   };
+
+  const startTimer = () => {
+    if (timerRef.current) return;
+    timerRef.current = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          stopTimer();
+          stopListening();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const stopTimer = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  useEffect(() => {
+    return () => {
+      stopTimer();
+    };
+  }, []);
 
   const handleSubmit = async () => {
     // (optional) send to evaluation API
@@ -253,7 +303,12 @@ export default function InterviewSimulatorWithVoice() {
           </div>
 
           <div className="bg-gray-800 p-6 rounded-xl border border-gray-700 space-y-4">
-            <h2 className="text-xl font-bold">Your Answer</h2>
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-bold">Your Answer</h2>
+              <div className={`text-lg font-semibold ${timeLeft <= 30 ? 'text-red-500 animate-pulse' : 'text-blue-400'}`}>
+                Time Left: {formatTime(timeLeft)}
+              </div>
+            </div>
             <textarea
               value={answer}
               onChange={(e) => {
@@ -270,11 +325,11 @@ export default function InterviewSimulatorWithVoice() {
                 onMouseEnter={() => setHoveredButton("start")}
                 onMouseLeave={() => setHoveredButton(null)}
                 onClick={startListening}
-                disabled={!canStart}
-                className={btnClass(canStart)}
+                disabled={!canStart || timeLeft <= 0}
+                className={btnClass(canStart && timeLeft > 0)}
               >
                 {startLabel}
-                {!canStart && hoveredButton === "start" && (
+                {(!canStart || timeLeft <= 0) && hoveredButton === "start" && (
                   <XCircle className="ml-2 text-red-500" />
                 )}
               </button>
