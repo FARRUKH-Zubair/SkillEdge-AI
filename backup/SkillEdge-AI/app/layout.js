@@ -6,6 +6,7 @@ import { dark } from "@clerk/themes";
 import Header from "../components/header";
 import { Toaster } from "sonner";
 import { Github, Linkedin, Send } from "lucide-react";
+import ScrollToTop from "@/components/scroll-to-top";
 
 export const metadata = {
   title: "Skill Edge AI ",
@@ -30,13 +31,13 @@ export default function RootLayout({ children }) {
             enableSystem
             disableTransitionOnChange
           >
+            <ScrollToTop />
             <Header />
             <main className="min-h-screen">
               {children}
               <Toaster />
             </main>
           </ThemeProvider>
-
         </body>
       </html>
     </ClerkProvider>

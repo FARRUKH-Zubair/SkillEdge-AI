@@ -24,14 +24,7 @@ const nextConfig = {
     DATABASE_URL: envConfig.DATABASE_URL,
     NEXT_PUBLIC_SUPABASE_URL: envConfig.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: envConfig.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-  },
-
-
-  experimental: {
-    turbo: {
-      enabled: false
-    }
-  },
+  }
 };
 
 export default nextConfig;
