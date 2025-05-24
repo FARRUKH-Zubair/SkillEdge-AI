@@ -2,10 +2,7 @@
   command = "cd SkillEdge-AI && npm install && npm run build"
   publish = "SkillEdge-AI/.next"
 
-[build.environment]
-  NEXT_TELEMETRY_DISABLED = "1"
-  NODE_VERSION = "18"
-  NPM_FLAGS = "--legacy-peer-deps"
+
 
 # Required environment variables
 [build.environment]
