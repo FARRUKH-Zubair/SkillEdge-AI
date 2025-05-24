@@ -26,9 +26,11 @@ const nextConfig = {
     NEXT_PUBLIC_SUPABASE_ANON_KEY: envConfig.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   },
 
-  
+
   experimental: {
-    turbo: false,
+    turbo: {
+      enabled: false
+    }
   },
 };
 
