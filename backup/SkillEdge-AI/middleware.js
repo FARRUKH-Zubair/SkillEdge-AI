@@ -1,6 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { db } from "./lib/prisma";
 
 const isProtectedRoute = createRouteMatcher([
   "/dashboard(.*)",
@@ -35,15 +34,18 @@ export default clerkMiddleware(async (auth, req) => {
   // If user is authenticated, check if they need to complete their profile
   if (userId && isProtectedRoute(req) && !isProfileUpdateRoute(req)) {
     try {
-      const user = await db.user.findUnique({
-        where: {
-          clerkUserId: userId,
-        },
-        select: {
-          industry: true,
-          skills: true,
+      // Instead of using Prisma directly in middleware, we'll make an API call
+      const response = await fetch(`${req.nextUrl.origin}/api/user/profile`, {
+        headers: {
+          'Content-Type': 'application/json',
         },
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch user profile');
+      }
+
+      const user = await response.json();
 
       // If user hasn't completed their profile, redirect to profile update
       if (!user?.industry || !user?.skills) {

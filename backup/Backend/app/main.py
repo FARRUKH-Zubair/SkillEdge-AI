@@ -32,26 +32,30 @@ app.add_middleware(
 # Environment: model adapter ID
 ADAPTER_MODEL_ID = os.getenv("MODEL_PATH", "raees456/QA_Generation_Model22")
 
-# Create offload directory if it doesn't exist
-OFFLOAD_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "model_offload")
-os.makedirs(OFFLOAD_DIR, exist_ok=True)
+# Configure model loading based on available hardware
+device = "cuda" if torch.cuda.is_available() else "cpu"
+torch_dtype = torch.float16 if device == "cuda" else torch.float32
+
+print(f"Using device: {device}")
+print(f"Using dtype: {torch_dtype}")
 
 # Load PEFT configuration
 peft_config = PeftConfig.from_pretrained(ADAPTER_MODEL_ID)
 
-# Load base model
+# Load base model with optimized settings for CPU
 base_model = AutoModelForCausalLM.from_pretrained(
     peft_config.base_model_name_or_path,
-    torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
-    device_map="auto",
-    offload_folder=OFFLOAD_DIR  # Add offload folder parameter
+    torch_dtype=torch_dtype,
+    device_map="cpu",
+    low_cpu_mem_usage=True
 )
 
-# Apply LoRA adapter
+# Apply LoRA adapter with optimized settings
 model = PeftModel.from_pretrained(
     base_model, 
     ADAPTER_MODEL_ID,
-    offload_folder=OFFLOAD_DIR  # Add offload folder parameter
+    torch_dtype=torch_dtype,
+    device_map="cpu"
 )
 
 # Load tokenizer
@@ -66,18 +70,17 @@ import torch
 if torch.cuda.is_available():
     used = torch.cuda.memory_allocated(0) / 1024**3
     total = torch.cuda.get_device_properties(0).total_memory / 1024**3
-    print(f"GPU memory in use: {used:.2f} GB / {total:.2f} GB")
+    print(f"GPU memory in use: {used:.2f} GB / {total:.2f} GB")
 else:
     print("CUDA not available — running on CPU.")
 
-# Text generation pipeline
-device = 0 if torch.cuda.is_available() else -1
-print("Running on:", "GPU" if device == 0 else "CPU")
+# Text generation pipeline with optimized settings
 text_generator = pipeline(
     "text-generation",
     model=model,
     tokenizer=tokenizer,
-    # device=device
+    device_map="cpu",
+    torch_dtype=torch_dtype
 )
 
 # Request schemas
@@ -111,10 +114,8 @@ async def generate_question(request: QuestionRequest):
         "Question6: <…>\n"
         "Question7: <your seventh question here>\n"
         "note: follow the format above of printing Question1 and then the question. it is necessary to follow the format\n"
-)
-    # print(prompt)
+    )
     print(f"You are an interviewer conducting a {request.type} interview for the position of {request.role}.\n")
-    # prompt = prompt_map.get(request.type, "You are an interviewer. Ask a question.")
     print(request.role)
     try:
         outputs = text_generator(
@@ -128,7 +129,7 @@ async def generate_question(request: QuestionRequest):
         )
         generated = outputs[0]["generated_text"]
         question_text = generated[len(prompt):].strip() or generated.strip()
-         # Use a regex to pull out each "QuestionN: ..." line
+        # Use a regex to pull out each "QuestionN: ..." line
         print(question_text)
         question_text = re.findall(r"(?m)(?:Question\d+:|\d+\.)\s*(.+)", question_text)
         return {"question": question_text}
