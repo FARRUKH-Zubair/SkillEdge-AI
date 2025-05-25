@@ -18,11 +18,7 @@ export default function InterviewSimulatorWithVoice() {
   const [hoveredButton, setHoveredButton] = useState(null);
   const [timeLeft, setTimeLeft] = useState(180);
   const [timerActive, setTimerActive] = useState(false);
-  const [permissions, setPermissions] = useState({
-    camera: false,
-    microphone: false
-  });
-  const [showPermissionModal, setShowPermissionModal] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const timerRef = useRef(null);
   const recognitionRef = useRef(null);
   const videoRef = useRef(null);
@@ -35,32 +31,24 @@ export default function InterviewSimulatorWithVoice() {
       ? "behavioral"
       : "resume";
 
-  const checkPermissions = async () => {
-    try {
-      const cameraPermission = await navigator.permissions.query({ name: 'camera' });
-      const micPermission = await navigator.permissions.query({ name: 'microphone' });
-
-      setPermissions({
-        camera: cameraPermission.state === 'granted',
-        microphone: micPermission.state === 'granted'
-      });
-
-      if (cameraPermission.state !== 'granted' || micPermission.state !== 'granted') {
-        setShowPermissionModal(true);
-      }
-    } catch (error) {
-      console.error('Error checking permissions:', error);
-      setShowPermissionModal(true);
-    }
-  };
+  useEffect(() => {
+    // Check if device is mobile
+    const checkMobile = () => {
+      const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+      const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
+      setIsMobile(mobileRegex.test(userAgent));
+    };
+    checkMobile();
+  }, []);
 
   useEffect(() => {
     if (started) {
-      checkPermissions();
-      enableWebcam();
+      if (!isMobile) {
+        enableWebcam();
+      }
       fetchAllQuestions();
     }
-  }, [started]);
+  }, [started, isMobile]);
 
   const enableWebcam = async () => {
     try {
@@ -71,7 +59,6 @@ export default function InterviewSimulatorWithVoice() {
       if (videoRef.current) videoRef.current.srcObject = stream;
     } catch (err) {
       console.error("Media access denied or not supported:", err);
-      setShowPermissionModal(true);
     }
   };
 
@@ -263,43 +250,6 @@ export default function InterviewSimulatorWithVoice() {
     );
   }
 
-  if (showPermissionModal) {
-    return (
-      <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-4 sm:p-8">
-        <div className="bg-gray-800 p-6 rounded-xl max-w-md w-full mx-4">
-          <h2 className="text-xl sm:text-2xl font-bold mb-4 text-center">Permissions Required</h2>
-          <p className="text-gray-300 mb-6 text-center">
-            This interview requires access to your camera and microphone. Please grant the necessary permissions to continue.
-          </p>
-          <div className="space-y-4">
-            <button
-              onClick={async () => {
-                try {
-                  await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                  setShowPermissionModal(false);
-                  checkPermissions();
-                } catch (err) {
-                  console.error("Permission denied:", err);
-                }
-              }}
-              className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center justify-center gap-2"
-            >
-              <Camera className="w-5 h-5" />
-              <Mic className="w-5 h-5" />
-              Grant Permissions
-            </button>
-            <button
-              onClick={() => router.push('/')}
-              className="w-full px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   const canStart = !transcribing;
   const canStop = transcribing;
   const canSubmit = !transcribing && spoken;
@@ -334,26 +284,28 @@ export default function InterviewSimulatorWithVoice() {
       </h1>
 
       <div className="mt-28 sm:mt-32 flex flex-col sm:flex-row items-center justify-center w-full max-w-7xl mx-auto gap-6 sm:gap-10 opacity-90">
-        <motion.div
-          className="w-full sm:w-1/3 flex flex-col items-center gap-4 sm:gap-6"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <img
-            src="https://img.freepik.com/free-vector/graident-ai-robot-vectorart_78370-4114.jpg"
-            alt="Robot Avatar"
-            className="w-32 h-32 sm:w-48 sm:h-48 rounded-full border-4 border-blue-500"
-          />
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            className="w-full sm:w-64 h-36 sm:h-48 rounded-xl border border-gray-600 object-cover scale-x-[-1]"
-          />
-        </motion.div>
+        {!isMobile && (
+          <motion.div
+            className="w-full sm:w-1/3 flex flex-col items-center gap-4 sm:gap-6"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <img
+              src="https://img.freepik.com/free-vector/graident-ai-robot-vectorart_78370-4114.jpg"
+              alt="Robot Avatar"
+              className="w-32 h-32 sm:w-48 sm:h-48 rounded-full border-4 border-blue-500"
+            />
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              className="w-full sm:w-64 h-36 sm:h-48 rounded-xl border border-gray-600 object-cover scale-x-[-1]"
+            />
+          </motion.div>
+        )}
 
-        <div className="w-full sm:w-2/3 space-y-4 sm:space-y-6">
+        <div className={`w-full ${!isMobile ? 'sm:w-2/3' : ''} space-y-4 sm:space-y-6`}>
           {countdown !== null && (
             <div className="text-center text-4xl sm:text-5xl font-bold text-yellow-400 animate-pulse mb-4">
               {countdown}
@@ -382,34 +334,38 @@ export default function InterviewSimulatorWithVoice() {
               }}
               disabled={transcribing}
               className="w-full h-24 sm:h-32 p-3 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none text-sm sm:text-base"
-              placeholder="Speak or type your answer here..."
+              placeholder="Type your answer here..."
             />
 
             <div className="flex flex-wrap gap-2 sm:gap-4 items-center">
-              <button
-                onMouseEnter={() => setHoveredButton("start")}
-                onMouseLeave={() => setHoveredButton(null)}
-                onClick={startListening}
-                disabled={!canStart || timeLeft <= 0}
-                className={`${btnClass(canStart && timeLeft > 0)} text-sm sm:text-base w-full sm:w-auto`}
-              >
-                {startLabel}
-                {(!canStart || timeLeft <= 0) && hoveredButton === "start" && (
-                  <XCircle className="ml-2 text-red-500" />
-                )}
-              </button>
-              <button
-                onMouseEnter={() => setHoveredButton("stop")}
-                onMouseLeave={() => setHoveredButton(null)}
-                onClick={stopListening}
-                disabled={!canStop}
-                className={`${btnClass(canStop)} text-sm sm:text-base w-full sm:w-auto`}
-              >
-                Stop Speaking
-                {!canStop && hoveredButton === "stop" && (
-                  <XCircle className="ml-2 text-red-500" />
-                )}
-              </button>
+              {!isMobile && (
+                <>
+                  <button
+                    onMouseEnter={() => setHoveredButton("start")}
+                    onMouseLeave={() => setHoveredButton(null)}
+                    onClick={startListening}
+                    disabled={!canStart || timeLeft <= 0}
+                    className={`${btnClass(canStart && timeLeft > 0)} text-sm sm:text-base w-full sm:w-auto`}
+                  >
+                    {startLabel}
+                    {(!canStart || timeLeft <= 0) && hoveredButton === "start" && (
+                      <XCircle className="ml-2 text-red-500" />
+                    )}
+                  </button>
+                  <button
+                    onMouseEnter={() => setHoveredButton("stop")}
+                    onMouseLeave={() => setHoveredButton(null)}
+                    onClick={stopListening}
+                    disabled={!canStop}
+                    className={`${btnClass(canStop)} text-sm sm:text-base w-full sm:w-auto`}
+                  >
+                    Stop Speaking
+                    {!canStop && hoveredButton === "stop" && (
+                      <XCircle className="ml-2 text-red-500" />
+                    )}
+                  </button>
+                </>
+              )}
               <button
                 onMouseEnter={() => setHoveredButton("submit")}
                 onMouseLeave={() => setHoveredButton(null)}
