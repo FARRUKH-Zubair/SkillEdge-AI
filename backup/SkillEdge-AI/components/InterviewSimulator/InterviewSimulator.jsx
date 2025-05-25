@@ -3,36 +3,60 @@
 import { useEffect, useState, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { XCircle } from "lucide-react";
+import { XCircle, Camera, Mic } from "lucide-react";
 
 export default function InterviewSimulatorWithVoice() {
   const [started, setStarted] = useState(false);
   const [questions, setQuestions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answer, setAnswer] = useState("");
-  const [answers, setAnswers] = useState([]);            // ← new: store all answers
+  const [answers, setAnswers] = useState([]);
   const [countdown, setCountdown] = useState(null);
   const [transcribing, setTranscribing] = useState(false);
   const [spoken, setSpoken] = useState(false);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
   const [hoveredButton, setHoveredButton] = useState(null);
-  const [timeLeft, setTimeLeft] = useState(180); // 3 minutes in seconds
+  const [timeLeft, setTimeLeft] = useState(180);
   const [timerActive, setTimerActive] = useState(false);
+  const [permissions, setPermissions] = useState({
+    camera: false,
+    microphone: false
+  });
+  const [showPermissionModal, setShowPermissionModal] = useState(false);
   const timerRef = useRef(null);
   const recognitionRef = useRef(null);
   const videoRef = useRef(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const type = searchParams.get("type") || "technical";
-  const role =
-    type === "technical"
-      ? searchParams.get("role") || "Software Engineer"
-      : type === "behavioral"
-        ? "behavioral"
-        : "resume";
+  const role = type === "technical"
+    ? searchParams.get("role") || "Software Engineer"
+    : type === "behavioral"
+      ? "behavioral"
+      : "resume";
+
+  const checkPermissions = async () => {
+    try {
+      const cameraPermission = await navigator.permissions.query({ name: 'camera' });
+      const micPermission = await navigator.permissions.query({ name: 'microphone' });
+
+      setPermissions({
+        camera: cameraPermission.state === 'granted',
+        microphone: micPermission.state === 'granted'
+      });
+
+      if (cameraPermission.state !== 'granted' || micPermission.state !== 'granted') {
+        setShowPermissionModal(true);
+      }
+    } catch (error) {
+      console.error('Error checking permissions:', error);
+      setShowPermissionModal(true);
+    }
+  };
 
   useEffect(() => {
     if (started) {
+      checkPermissions();
       enableWebcam();
       fetchAllQuestions();
     }
@@ -40,10 +64,14 @@ export default function InterviewSimulatorWithVoice() {
 
   const enableWebcam = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true
+      });
       if (videoRef.current) videoRef.current.srcObject = stream;
     } catch (err) {
-      console.error("Webcam access denied or not supported:", err);
+      console.error("Media access denied or not supported:", err);
+      setShowPermissionModal(true);
     }
   };
 
@@ -223,14 +251,51 @@ export default function InterviewSimulatorWithVoice() {
 
   if (!started) {
     return (
-      <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-8">
-        <h1 className="text-4xl font-bold mb-6">Ready to Start Your Interview?</h1>
+      <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-4 sm:p-8">
+        <h1 className="text-2xl sm:text-4xl font-bold mb-6 text-center">Ready to Start Your Interview?</h1>
         <button
           onClick={() => setStarted(true)}
-          className="px-8 py-4 text-lg bg-blue-600 hover:bg-blue-700 rounded-xl shadow-lg transition-transform hover:scale-105"
+          className="px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg bg-blue-600 hover:bg-blue-700 rounded-xl shadow-lg transition-transform hover:scale-105 w-full sm:w-auto max-w-xs"
         >
           Start Interview
         </button>
+      </div>
+    );
+  }
+
+  if (showPermissionModal) {
+    return (
+      <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-4 sm:p-8">
+        <div className="bg-gray-800 p-6 rounded-xl max-w-md w-full mx-4">
+          <h2 className="text-xl sm:text-2xl font-bold mb-4 text-center">Permissions Required</h2>
+          <p className="text-gray-300 mb-6 text-center">
+            This interview requires access to your camera and microphone. Please grant the necessary permissions to continue.
+          </p>
+          <div className="space-y-4">
+            <button
+              onClick={async () => {
+                try {
+                  await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                  setShowPermissionModal(false);
+                  checkPermissions();
+                } catch (err) {
+                  console.error("Permission denied:", err);
+                }
+              }}
+              className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center justify-center gap-2"
+            >
+              <Camera className="w-5 h-5" />
+              <Mic className="w-5 h-5" />
+              Grant Permissions
+            </button>
+            <button
+              onClick={() => router.push('/')}
+              className="w-full px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -249,63 +314,63 @@ export default function InterviewSimulatorWithVoice() {
   const submitLabel = isLast ? "Finish Interview" : "Submit & Next";
 
   return (
-    <div className="relative min-h-screen bg-gray-950 text-white p-8">
+    <div className="relative min-h-screen bg-gray-950 text-white p-4 sm:p-8">
       {loadingQuestions && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-800 bg-opacity-75 z-10">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-          <p className="mt-4 text-white text-lg">Generating Questions...</p>
+          <div className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+          <p className="mt-4 text-white text-base sm:text-lg">Generating Questions...</p>
         </div>
       )}
 
       <button
         onClick={handleTerminate}
-        className="absolute bottom-4 right-4 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg shadow-lg"
+        className="absolute bottom-4 right-4 bg-red-600 hover:bg-red-700 text-white px-3 sm:px-4 py-2 rounded-lg shadow-lg text-sm sm:text-base"
       >
         Terminate Interview
       </button>
 
-      <h1 className="absolute top-24 left-1/2 transform -translate-x-1/2 text-3xl font-bold text-white">
+      <h1 className="absolute top-20 sm:top-24 left-1/2 transform -translate-x-1/2 text-xl sm:text-3xl font-bold text-white text-center w-full px-4">
         {`Interview of ${role}`}
       </h1>
 
-      <div className="mt-32 flex items-center justify-center w-full max-w-7xl mx-auto gap-10 opacity-90">
+      <div className="mt-28 sm:mt-32 flex flex-col sm:flex-row items-center justify-center w-full max-w-7xl mx-auto gap-6 sm:gap-10 opacity-90">
         <motion.div
-          className="w-1/3 flex flex-col items-center gap-6"
-          initial={{ opacity: 0, x: -50 }}
-          animate={{ opacity: 1, x: 0 }}
+          className="w-full sm:w-1/3 flex flex-col items-center gap-4 sm:gap-6"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
           <img
             src="https://img.freepik.com/free-vector/graident-ai-robot-vectorart_78370-4114.jpg"
             alt="Robot Avatar"
-            className="w-48 h-48 rounded-full border-4 border-blue-500"
+            className="w-32 h-32 sm:w-48 sm:h-48 rounded-full border-4 border-blue-500"
           />
           <video
             ref={videoRef}
             autoPlay
             playsInline
-            className="w-64 h-48 rounded-xl border border-gray-600 object-cover scale-x-[-1]"
+            className="w-full sm:w-64 h-36 sm:h-48 rounded-xl border border-gray-600 object-cover scale-x-[-1]"
           />
         </motion.div>
 
-        <div className="w-2/3 space-y-6">
+        <div className="w-full sm:w-2/3 space-y-4 sm:space-y-6">
           {countdown !== null && (
-            <div className="text-center text-5xl font-bold text-yellow-400 animate-pulse mb-4">
+            <div className="text-center text-4xl sm:text-5xl font-bold text-yellow-400 animate-pulse mb-4">
               {countdown}
             </div>
           )}
 
-          <div className="bg-gray-800 p-6 rounded-xl border border-gray-700">
-            <h2 className="text-xl font-bold mb-2">{`Question ${currentIndex + 1}`}</h2>
-            <p className="text-lg text-blue-300 min-h-[48px]">
+          <div className="bg-gray-800 p-4 sm:p-6 rounded-xl border border-gray-700">
+            <h2 className="text-lg sm:text-xl font-bold mb-2">{`Question ${currentIndex + 1}`}</h2>
+            <p className="text-base sm:text-lg text-blue-300 min-h-[48px]">
               {questions[currentIndex]}
             </p>
           </div>
 
-          <div className="bg-gray-800 p-6 rounded-xl border border-gray-700 space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold">Your Answer</h2>
-              <div className={`text-lg font-semibold ${timeLeft <= 30 ? 'text-red-500 animate-pulse' : 'text-blue-400'}`}>
+          <div className="bg-gray-800 p-4 sm:p-6 rounded-xl border border-gray-700 space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+              <h2 className="text-lg sm:text-xl font-bold">Your Answer</h2>
+              <div className={`text-base sm:text-lg font-semibold ${timeLeft <= 30 ? 'text-red-500 animate-pulse' : 'text-blue-400'}`}>
                 Time Left: {formatTime(timeLeft)}
               </div>
             </div>
@@ -316,17 +381,17 @@ export default function InterviewSimulatorWithVoice() {
                 setSpoken(!!e.target.value);
               }}
               disabled={transcribing}
-              className="w-full h-32 p-3 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none"
+              className="w-full h-24 sm:h-32 p-3 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none text-sm sm:text-base"
               placeholder="Speak or type your answer here..."
             />
 
-            <div className="flex flex-wrap gap-4 items-center">
+            <div className="flex flex-wrap gap-2 sm:gap-4 items-center">
               <button
                 onMouseEnter={() => setHoveredButton("start")}
                 onMouseLeave={() => setHoveredButton(null)}
                 onClick={startListening}
                 disabled={!canStart || timeLeft <= 0}
-                className={btnClass(canStart && timeLeft > 0)}
+                className={`${btnClass(canStart && timeLeft > 0)} text-sm sm:text-base w-full sm:w-auto`}
               >
                 {startLabel}
                 {(!canStart || timeLeft <= 0) && hoveredButton === "start" && (
@@ -338,7 +403,7 @@ export default function InterviewSimulatorWithVoice() {
                 onMouseLeave={() => setHoveredButton(null)}
                 onClick={stopListening}
                 disabled={!canStop}
-                className={btnClass(canStop)}
+                className={`${btnClass(canStop)} text-sm sm:text-base w-full sm:w-auto`}
               >
                 Stop Speaking
                 {!canStop && hoveredButton === "stop" && (
@@ -350,7 +415,7 @@ export default function InterviewSimulatorWithVoice() {
                 onMouseLeave={() => setHoveredButton(null)}
                 onClick={handleSubmit}
                 disabled={!canSubmit}
-                className={btnClass(canSubmit)}
+                className={`${btnClass(canSubmit)} text-sm sm:text-base w-full sm:w-auto`}
               >
                 {submitLabel}
                 {!canSubmit && hoveredButton === "submit" && (

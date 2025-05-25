@@ -31,22 +31,22 @@ export default async function LandingPage() {
       <HeroSection />
 
       {/* Features Section */}
-      <section className="w-full py-12 md:py-24 lg:py-32 bg-background">
-        <div className="container mx-auto px-4 md:px-6">
-          <h2 className="text-3xl font-bold tracking-tighter text-center mb-12">
+      <section className="w-full py-8 sm:py-12 md:py-16 lg:py-24 bg-background">
+        <div className="container mx-auto px-4 sm:px-6 max-w-[90%] sm:max-w-[85%] md:max-w-[80%] lg:max-w-[1200px]">
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tighter text-center mb-8 sm:mb-12">
             Powerful Features for Your Career Growth
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 max-w-[95%] sm:max-w-[90%] md:max-w-[85%] lg:max-w-[1100px] mx-auto">
             {features.map((feature, index) => (
               <Card
                 key={index}
                 className="border-2 hover:border-primary transition-colors duration-300"
               >
-                <CardContent className="pt-6 text-center flex flex-col items-center">
+                <CardContent className="p-4 sm:p-6 text-center flex flex-col items-center">
                   <div className="flex flex-col items-center justify-center">
                     {feature.icon}
-                    <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
-                    <p className="text-muted-foreground">
+                    <h3 className="text-lg sm:text-xl font-bold mb-2 mt-2">{feature.title}</h3>
+                    <p className="text-sm sm:text-base text-muted-foreground">
                       {feature.description}
                     </p>
                   </div>
@@ -58,8 +58,8 @@ export default async function LandingPage() {
       </section>
 
       {/* Stats Section */}
-      <section className="w-full py-12 md:py-24 bg-muted/50 bg-gradient-to-br from-gray-900 via-gray-950 to-black">
-        <div className="container mx-auto px-4 md:px-6">
+      <section className="w-full py-8 sm:py-12 md:py-16 lg:py-24 bg-muted/50 bg-gradient-to-br from-gray-900 via-gray-950 to-black">
+        <div className="container mx-auto px-4 sm:px-6 max-w-[90%] sm:max-w-[85%] md:max-w-[80%] lg:max-w-[1200px]">
           <StatsSection />
         </div>
       </section>
@@ -67,36 +67,29 @@ export default async function LandingPage() {
       {/* How It Works Section */}
       <HowItWorksSection />
 
-
-
-
       {/* Testimonials Section */}
       <TestimonialsSection testimonials={testimonial} feedbacks={feedbacks} />
 
-
-
-
-
       {/* FAQ Section */}
-      <section className="w-full py-12 md:py-24 bg-gradient-to-br from-gray-900 via-gray-950 to-black">
-        <div className="container mx-auto px-4 md:px-6">
-          <div className="text-center max-w-3xl mx-auto mb-12">
-            <h2 className="text-3xl font-bold mb-4">
+      <section className="w-full py-8 sm:py-12 md:py-16 lg:py-24 bg-gradient-to-br from-gray-900 via-gray-950 to-black">
+        <div className="container mx-auto px-4 sm:px-6 max-w-[90%] sm:max-w-[85%] md:max-w-[80%] lg:max-w-[1200px]">
+          <div className="text-center max-w-[95%] sm:max-w-[90%] md:max-w-[85%] lg:max-w-[800px] mx-auto mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4">
               Frequently Asked Questions
             </h2>
-            <p className="text-muted-foreground">
+            <p className="text-sm sm:text-base text-muted-foreground">
               Find answers to common questions about our platform
             </p>
           </div>
 
-          <div className="max-w-3xl mx-auto">
+          <div className="max-w-[95%] sm:max-w-[90%] md:max-w-[85%] lg:max-w-[800px] mx-auto">
             <Accordion type="single" collapsible className="w-full">
               {faqs.map((faq, index) => (
                 <AccordionItem key={index} value={`item-${index}`}>
-                  <AccordionTrigger className="text-left">
+                  <AccordionTrigger className="text-left text-sm sm:text-base">
                     {faq.question}
                   </AccordionTrigger>
-                  <AccordionContent>{faq.answer}</AccordionContent>
+                  <AccordionContent className="text-sm sm:text-base">{faq.answer}</AccordionContent>
                 </AccordionItem>
               ))}
             </Accordion>
@@ -104,18 +97,14 @@ export default async function LandingPage() {
         </div>
       </section>
 
-
-
-
-
       {/* CTA Section */}
       <section className="w-full bg-gradient-to-br from-gray-900 via-gray-950 to-black">
-        <div className="mx-auto py-24 gradient rounded-lg">
-          <div className="flex flex-col items-center justify-center space-y-4 text-center max-w-3xl mx-auto">
-            <h2 className="text-3xl font-bold tracking-tighter text-primary-foreground sm:text-4xl md:text-5xl">
+        <div className="mx-auto py-12 sm:py-16 md:py-20 lg:py-24 gradient rounded-lg">
+          <div className="flex flex-col items-center justify-center space-y-4 text-center max-w-[95%] sm:max-w-[90%] md:max-w-[85%] lg:max-w-[1000px] mx-auto px-4 sm:px-6">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tighter text-primary-foreground">
               Ready to Accelerate Your Career?
             </h2>
-            <p className="mx-auto max-w-[600px] text-primary-foreground/80 md:text-xl">
+            <p className="mx-auto max-w-[95%] sm:max-w-[90%] md:max-w-[85%] lg:max-w-[600px] text-sm sm:text-base md:text-lg text-primary-foreground/80">
               Join thousands of professionals who are advancing their careers
               with AI-powered guidance.
             </p>
@@ -123,7 +112,7 @@ export default async function LandingPage() {
               <Button
                 size="lg"
                 variant="secondary"
-                className="h-11 mt-5 animate-bounce"
+                className="h-10 sm:h-11 mt-4 sm:mt-5 animate-bounce text-sm sm:text-base"
               >
                 Start Your Journey Today <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
