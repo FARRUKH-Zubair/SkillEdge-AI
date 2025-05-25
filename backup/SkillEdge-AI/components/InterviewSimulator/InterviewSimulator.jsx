@@ -110,7 +110,7 @@ export default function InterviewSimulatorWithVoice() {
   };
 
   const startListening = () => {
-    if (!("webkitSpeechRecognition" in window)) {
+    if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
       alert("Your browser doesn't support Speech Recognition");
       return;
     }
@@ -120,7 +120,8 @@ export default function InterviewSimulatorWithVoice() {
       return;
     }
 
-    const recognition = new webkitSpeechRecognition();
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
     recognitionRef.current = recognition;
     recognition.continuous = true;
     recognition.interimResults = false;
@@ -136,7 +137,12 @@ export default function InterviewSimulatorWithVoice() {
       setTimerActive(false);
       stopTimer();
     };
-    recognition.onerror = (e) => console.error("Speech error:", e);
+    recognition.onerror = (e) => {
+      console.error("Speech error:", e);
+      if (e.error === 'no-speech') {
+        alert("No speech detected. Please try speaking again.");
+      }
+    };
 
     recognition.onresult = (e) => {
       let transcript = "";
@@ -147,7 +153,12 @@ export default function InterviewSimulatorWithVoice() {
       setSpoken(true);
     };
 
-    recognition.start();
+    try {
+      recognition.start();
+    } catch (err) {
+      console.error("Error starting speech recognition:", err);
+      alert("Error starting speech recognition. Please try again.");
+    }
   };
 
   const stopListening = () => {
@@ -338,34 +349,30 @@ export default function InterviewSimulatorWithVoice() {
             />
 
             <div className="flex flex-wrap gap-2 sm:gap-4 items-center">
-              {!isMobile && (
-                <>
-                  <button
-                    onMouseEnter={() => setHoveredButton("start")}
-                    onMouseLeave={() => setHoveredButton(null)}
-                    onClick={startListening}
-                    disabled={!canStart || timeLeft <= 0}
-                    className={`${btnClass(canStart && timeLeft > 0)} text-sm sm:text-base w-full sm:w-auto`}
-                  >
-                    {startLabel}
-                    {(!canStart || timeLeft <= 0) && hoveredButton === "start" && (
-                      <XCircle className="ml-2 text-red-500" />
-                    )}
-                  </button>
-                  <button
-                    onMouseEnter={() => setHoveredButton("stop")}
-                    onMouseLeave={() => setHoveredButton(null)}
-                    onClick={stopListening}
-                    disabled={!canStop}
-                    className={`${btnClass(canStop)} text-sm sm:text-base w-full sm:w-auto`}
-                  >
-                    Stop Speaking
-                    {!canStop && hoveredButton === "stop" && (
-                      <XCircle className="ml-2 text-red-500" />
-                    )}
-                  </button>
-                </>
-              )}
+              <button
+                onMouseEnter={() => setHoveredButton("start")}
+                onMouseLeave={() => setHoveredButton(null)}
+                onClick={startListening}
+                disabled={!canStart || timeLeft <= 0}
+                className={`${btnClass(canStart && timeLeft > 0)} text-sm sm:text-base w-full sm:w-auto`}
+              >
+                {startLabel}
+                {(!canStart || timeLeft <= 0) && hoveredButton === "start" && (
+                  <XCircle className="ml-2 text-red-500" />
+                )}
+              </button>
+              <button
+                onMouseEnter={() => setHoveredButton("stop")}
+                onMouseLeave={() => setHoveredButton(null)}
+                onClick={stopListening}
+                disabled={!canStop}
+                className={`${btnClass(canStop)} text-sm sm:text-base w-full sm:w-auto`}
+              >
+                Stop Speaking
+                {!canStop && hoveredButton === "stop" && (
+                  <XCircle className="ml-2 text-red-500" />
+                )}
+              </button>
               <button
                 onMouseEnter={() => setHoveredButton("submit")}
                 onMouseLeave={() => setHoveredButton(null)}
