@@ -1,32 +1,27 @@
 export const faqs = [
     {
-        question: "What makes Skill Edge AI unique as a career development tool?",
+        question: "What types of interviews does Skill Edge AI prepare me for?",
         answer:
-            "Skill Edge AI combines AI-powered career tools with industry-specific insights to help you advance your career. Our platform offers three main features: an intelligent resume builder, a cover letter generator, and an adaptive interview preparation system. Each tool is tailored to your industry and skills, providing personalized guidance for your professional journey.",
+            "Skill Edge AI specializes in three key interview types: Technical Interviews for  problem-solving skills, Behavioral Interviews for showcasing your past experiences and soft skills, and Resume-Based Interviews for deep dives into your professional background. Each type comes with tailored preparation materials and practice scenarios.",
     },
     {
-        question: "How does Skill Edge AI create tailored content?",
+        question: "How does the interview analysis system work?",
         answer:
-            "Skill Edge AI learns about your industry, experience, and skills during onboarding. It then uses this information to generate customized resumes, cover letters, and interview questions. The content is specifically aligned with your professional background and industry standards, making it highly relevant and effective.",
+            "Our AI-powered analysis system evaluates your interview performance across multiple dimensions. It provides detailed feedback on your communication skills, technical accuracy and overall presentation. The system tracks your progress over time, highlighting areas of improvement and suggesting specific strategies for enhancement.",
     },
     {
-        question: "How accurate and up-to-date are Skill Edge AI's industry insights?",
+        question: "What kind of feedback can I expect after practice interviews?",
         answer:
-            "We update our industry insights weekly using advanced AI analysis of current market trends. This includes salary data, in-demand skills, and industry growth patterns. Our system constantly evolves to ensure you have the most relevant information for your career decisions.",
+            "After each practice interview, you'll receive comprehensive feedback including: detailed performance analytics, specific areas for improvement, communication style analysis, and personalized recommendations. The feedback is designed to be actionable, helping you make concrete improvements in your interview skills.",
     },
     {
-        question: "Is my data secure with Skill Edge AI?",
+        question: "Can I track my progress over time?",
         answer:
-            "Absolutely. We prioritize the security of your professional information. All data is encrypted and securely stored using industry-standard practices. We use Clerk for authentication and never share your personal information with third parties.",
+            "Yes! Skill Edge AI provides detailed progress tracking through our analytics dashboard. You can view your improvement across different interview types, track your performance metrics, and see how your skills evolve over time. The system generates visual reports and insights to help you understand your strengths and areas for growth.",
     },
     {
-        question: "How can I track my interview preparation progress?",
+        question: "What makes Skill Edge AI different from other interview preparation platforms?",
         answer:
-            "Skill Edge AI tracks your performance across multiple practice interviews, providing detailed analytics and improvement suggestions. You can view your progress over time, identify areas for improvement, and receive AI-generated tips to enhance your interview skills based on your responses.",
-    },
-    {
-        question: "Can I edit the AI-generated content?",
-        answer:
-            "Yes! While Skill Edge AI generates high-quality initial content, you have full control to edit and customize all generated resumes, cover letters, and other content. Our markdown editor makes it easy to refine the content to perfectly match your needs.",
-    },
+            "Skill Edge AI stands out through its comprehensive analysis system, personalized feedback, and adaptive learning approach. Unlike other platforms, we provide detailed performance analytics, real-time feedback, and progress tracking. Our AI-powered system adapts to your specific needs and learning style, making your preparation more effective and efficient.",
+    }
 ];

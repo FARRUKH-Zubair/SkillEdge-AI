@@ -6,7 +6,7 @@ import { ArrowRight } from "lucide-react";
 import HeroSection from "@/components/hero";
 import StatsSection from "@/components/stats-section";
 import HowItWorksSection from "@/components/how-it-works-section";
-import TestimonialsSection from "@/components/testimonials-section";
+// import TestimonialsSection from "@/components/testimonials-section";
 
 import {
   Accordion,
@@ -67,8 +67,8 @@ export default async function LandingPage() {
       {/* How It Works Section */}
       <HowItWorksSection />
 
-      {/* Testimonials Section */}
-      <TestimonialsSection testimonials={testimonial} feedbacks={feedbacks} />
+      {/* Testimonials Section
+      <TestimonialsSection testimonials={testimonial} feedbacks={feedbacks} /> */}
 
       {/* FAQ Section */}
       <section className="w-full py-8 sm:py-12 md:py-16 lg:py-24 bg-gradient-to-br from-gray-900 via-gray-950 to-black">
@@ -108,7 +108,7 @@ export default async function LandingPage() {
               Join thousands of professionals who are advancing their careers
               with AI-powered guidance.
             </p>
-            <Link href="/dashboard" passHref>
+            <Link href="/" passHref>
               <Button
                 size="lg"
                 variant="secondary"
