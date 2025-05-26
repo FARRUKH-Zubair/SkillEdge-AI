@@ -77,9 +77,9 @@ export default async function LandingPage() {
             <h2 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4">
               Frequently Asked Questions
             </h2>
-            <p className="text-sm sm:text-base text-muted-foreground">
+            {/* <p className="text-sm sm:text-base text-muted-foreground">
               Find answers to common questions about our platform
-            </p>
+            </p> */}
           </div>
 
           <div className="max-w-[95%] sm:max-w-[90%] md:max-w-[85%] lg:max-w-[800px] mx-auto">

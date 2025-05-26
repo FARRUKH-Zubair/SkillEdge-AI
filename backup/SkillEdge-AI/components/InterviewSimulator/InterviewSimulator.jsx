@@ -54,7 +54,7 @@ export default function InterviewSimulatorWithVoice() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: true,
-        audio: true
+        audio: false  // Disable audio input to prevent echo
       });
       if (videoRef.current) videoRef.current.srcObject = stream;
     } catch (err) {
@@ -162,7 +162,12 @@ export default function InterviewSimulatorWithVoice() {
   };
 
   const stopListening = () => {
-    recognitionRef.current?.stop();
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      // Stop all tracks in the media stream
+      const tracks = recognitionRef.current.stream?.getTracks() || [];
+      tracks.forEach(track => track.stop());
+    }
     setTranscribing(false);
     setTimerActive(false);
     stopTimer();
