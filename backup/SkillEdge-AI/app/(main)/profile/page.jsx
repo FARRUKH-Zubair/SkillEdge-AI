@@ -211,12 +211,23 @@ export default function ViewProfilePage() {
             </motion.div>
 
             {/* Bio */}
-            {profileData.bio && (
-              <motion.div variants={cardVariants} className="bg-gray-700/40 p-5 rounded-xl border border-gray-600/30 hover:border-indigo-500/20 transition-all duration-300 hover:translate-y-[-4px]">
-                <h3 className="text-lg font-semibold text-white mb-3 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">Professional Bio</h3>
-                <p className="text-white whitespace-pre-line leading-relaxed">{profileData.bio}</p>
-              </motion.div>
-            )}
+            <motion.div variants={cardVariants} className="bg-gray-700/40 p-5 rounded-xl border border-gray-600/30 hover:border-indigo-500/20 transition-all duration-300 hover:translate-y-[-4px]">
+              <h3 className="text-lg font-semibold text-white mb-3 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">Professional Bio</h3>
+              <p className="text-white whitespace-pre-line leading-relaxed">{profileData.bio}</p>
+            </motion.div>
+
+            {/* Resume Section */}
+            <motion.div variants={cardVariants} className="bg-gray-700/40 p-5 rounded-xl border border-gray-600/30 hover:border-indigo-500/20 transition-all duration-300 hover:translate-y-[-4px]">
+              <h3 className="text-lg font-semibold text-white mb-3 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">Resume</h3>
+              {profileData.resume_url ? (
+                <p className="text-green-400 font-medium mb-2">You have uploaded your resume.</p>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-red-400 font-medium">Resume not found</p>
+                  <p className="text-gray-400 text-sm">Upload your resume to enable resume-based interviews.</p>
+                </div>
+              )}
+            </motion.div>
           </motion.div>
         )}
       </motion.div>

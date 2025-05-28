@@ -95,15 +95,35 @@ class EvaluationRequest(BaseModel):
 
 @app.post("/api/interview/generate-question")
 async def generate_question(request: QuestionRequest):
-    if not request.type or not request.role:
-        raise HTTPException(status_code=400, detail="Missing type or role")
+    if not request.type:
+        raise HTTPException(status_code=400, detail="Missing type")
+    if request.type == "technical" and not request.role:
+        raise HTTPException(status_code=400, detail="Missing role for technical interview")
+    if request.type == "resume" and not request.role:
+        raise HTTPException(status_code=400, detail="Missing position for resume-based interview")
+    
     print(request.type)
     prompt = (
         "You are a helpful assistant specialized in generating interview questions.\n\n"
         "Given the following inputs:\n"
         f"Interview Type: {request.type}\n"
-        f"Role: {request.role}\n\n"
-        "Please generate exactly 7 unique interview questions tailored to the above.\n"
+        f"Role/Position: {request.role}\n\n"
+    )
+    
+    if request.type == "resume":
+        prompt += (
+            "Please generate exactly 7 unique interview questions that:\n"
+            "1. Are specific to the position of " + request.role + "\n"
+            "2. Focus on the candidate's experience and skills relevant to this role\n"
+            "3. Include both technical and behavioral aspects of the position\n"
+            "4. Help assess the candidate's fit for this specific role\n\n"
+        )
+    else:
+        prompt += (
+            "Please generate exactly 7 unique interview questions tailored to the above.\n"
+        )
+    
+    prompt += (
         "– Output only the questions (no answers, no extra commentary).\n"
         "– Number them sequentially, in this exact format:\n\n"
         "Question1: <your first question here>\n"
@@ -115,6 +135,7 @@ async def generate_question(request: QuestionRequest):
         "Question7: <your seventh question here>\n"
         "note: follow the format above of printing Question1 and then the question. it is necessary to follow the format\n"
     )
+    
     print(f"You are an interviewer conducting a {request.type} interview for the position of {request.role}.\n")
     print(request.role)
     try:

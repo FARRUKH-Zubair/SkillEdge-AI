@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+import { motion } from "framer-motion";
 
 export default function UpdateProfilePage() {
   const { user, isLoaded } = useUser();
@@ -20,6 +22,9 @@ export default function UpdateProfilePage() {
     bio: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [resumeFile, setResumeFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState("");
 
   // Fetch user data from Supabase via API route
   useEffect(() => {
@@ -114,6 +119,57 @@ export default function UpdateProfilePage() {
     }
   };
 
+  const handleResumeUpload = async () => {
+    if (!resumeFile || resumeFile.type !== "application/pdf") {
+      setUploadMessage("Please select a valid PDF file.");
+      return;
+    }
+    setUploading(true);
+    setUploadMessage("Uploading...");
+
+    const fileExt = resumeFile.name.split(".").pop();
+    const fileName = `${user.id}_${Date.now()}.${fileExt}`;
+    const filePath = `resumes/${fileName}`;
+
+    // Upload to Supabase Storage
+    const { error: uploadError } = await supabase.storage
+      .from("resume")
+      .upload(filePath, resumeFile);
+
+    if (uploadError) {
+      setUploadMessage("Upload failed: " + uploadError.message);
+      setUploading(false);
+      return;
+    }
+
+    // Get the public URL
+    const { data: urlData } = supabase.storage
+      .from("resume")
+      .getPublicUrl(filePath);
+
+    const publicUrl = urlData.publicUrl;
+
+    // Save URL in profile table
+    const { error: updateError } = await supabase
+      .from("profiles")
+      .update({ resume_url: publicUrl })
+      .eq("user_id", user.id);
+
+    if (updateError) {
+      setUploadMessage("Upload succeeded but failed to save link.");
+    } else {
+      setUploadMessage("Resume uploaded and linked to your profile!");
+    }
+
+    setUploading(false);
+  };
+
+  function getResumeFileName(url) {
+    if (!url) return "";
+    // This will get the part after the last slash
+    return url.split("/").pop();
+  }
+
   // Display loading UI
   if (!isLoaded || loading) {
     return (
@@ -132,7 +188,7 @@ export default function UpdateProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
+    <div className="min-h-screen w-full bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
       <form
         onSubmit={handleSubmit}
         className="w-full max-w-xl bg-gray-800/80 backdrop-blur-sm rounded-2xl p-8 space-y-6 shadow-xl border border-gray-700/50 transition-all duration-300 hover:shadow-indigo-500/10"
@@ -246,6 +302,27 @@ export default function UpdateProfilePage() {
           />
         </div>
 
+        <div>
+          <label className="block text-gray-200 mb-1.5 font-medium">Resume (PDF)</label>
+          <input
+            type="file"
+            accept="application/pdf"
+            onChange={e => setResumeFile(e.target.files?.[0])}
+            className="w-full rounded-lg bg-gray-700/70 text-white p-3 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all duration-200 border border-gray-600"
+          />
+          <button
+            type="button"
+            onClick={handleResumeUpload}
+            disabled={uploading || !resumeFile}
+            className="mt-2 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition"
+          >
+            {uploading ? "Uploading..." : "Upload Resume"}
+          </button>
+          {uploadMessage && (
+            <div className="text-sm mt-1 text-indigo-300">{uploadMessage}</div>
+          )}
+        </div>
+
         <button
           type="submit"
           disabled={isSubmitting}
@@ -262,3 +339,7 @@ export default function UpdateProfilePage() {
     </div>
   );
 }
+
+
+
+

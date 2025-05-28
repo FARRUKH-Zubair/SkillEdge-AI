@@ -2,14 +2,18 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { useUser } from "@clerk/nextjs";
+import { supabase } from "@/lib/supabase";
 
 export default function InterviewTypeSelector() {
+  const { user } = useUser();
   const [selectedType, setSelectedType] = useState("technical");
   const [selectedRole, setSelectedRole] = useState("Software Engineer");
   const [isLoaded, setIsLoaded] = useState(false);
   const [resumeFile, setResumeFile] = useState(null);
   const [position, setPosition] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [existingResume, setExistingResume] = useState(null);
 
   const interviewTypes = [
     {
@@ -48,6 +52,28 @@ export default function InterviewTypeSelector() {
     "Mobile Developer",
   ];
 
+  // Fetch user's profile data to check for existing resume
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("resume_url, position")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!error && data?.resume_url) {
+        setExistingResume(data.resume_url);
+        if (data.position) {
+          setPosition(data.position);
+        }
+      }
+    };
+
+    fetchProfile();
+  }, [user]);
+
   const handleResumeUpload = async () => {
     if (!resumeFile) {
       toast.error("Please select a resume file");
@@ -69,7 +95,13 @@ export default function InterviewTypeSelector() {
 
   const handleContinue = () => {
     if (selectedType === "resume") {
-      handleResumeUpload();
+      if (existingResume) {
+        // If resume exists, use the position from profile
+        window.location.href = `/interview-simulator?type=resume&position=${encodeURIComponent(position)}`;
+      } else {
+        // If no resume exists, handle new upload
+        handleResumeUpload();
+      }
       return;
     }
 
@@ -153,45 +185,58 @@ export default function InterviewTypeSelector() {
         {/* Upload option for Resume-Based */}
         {selectedType === "resume" && (
           <div className="mb-8 sm:mb-10 text-center space-y-4 sm:space-y-6">
-            <div className="max-w-[95%] sm:max-w-md mx-auto">
-              <h3 className="text-lg sm:text-xl font-semibold mb-3 text-purple-300">
-                Select Position:
-              </h3>
-              <select
-                value={position}
-                onChange={(e) => setPosition(e.target.value)}
-                className="w-full px-3 sm:px-4 py-2 rounded-lg bg-gray-800 text-white border border-gray-600 focus:border-purple-500 focus:ring-2 focus:ring-purple-500 focus:outline-none text-sm sm:text-base"
-              >
-                <option value="">Select a position</option>
-                {technicalRoles.map((role) => (
-                  <option key={role} value={role}>
-                    {role}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="max-w-[95%] sm:max-w-md mx-auto">
-              <h3 className="text-lg sm:text-xl font-semibold mb-3 text-purple-300">
-                Upload Your Resume:
-              </h3>
-              <div className="flex flex-col items-center space-y-3 sm:space-y-4">
-                <input
-                  type="file"
-                  accept=".pdf"
-                  onChange={(e) => setResumeFile(e.target.files[0])}
-                  className="block w-full text-xs sm:text-sm text-gray-300
-                    file:mr-2 sm:file:mr-4 file:py-1 sm:file:py-2 file:px-2 sm:file:px-4
-                    file:rounded-lg file:border-0
-                    file:text-xs sm:file:text-sm file:font-semibold
-                    file:bg-purple-600 file:text-white
-                    hover:file:bg-purple-700
-                    cursor-pointer"
-                />
-                <p className="text-xs sm:text-sm text-gray-400">
-                  Only PDF files are accepted
+            {existingResume ? (
+              <div className="max-w-[95%] sm:max-w-md mx-auto p-4 bg-purple-900/30 rounded-lg border border-purple-500/30">
+                <h3 className="text-lg sm:text-xl font-semibold mb-2 text-purple-300">
+                  Resume Already Uploaded
+                </h3>
+                <p className="text-sm text-gray-300">
+                  You have already uploaded your resume. You can proceed with the interview.
                 </p>
               </div>
-            </div>
+            ) : (
+              <>
+                <div className="max-w-[95%] sm:max-w-md mx-auto">
+                  <h3 className="text-lg sm:text-xl font-semibold mb-3 text-purple-300">
+                    Select Position:
+                  </h3>
+                  <select
+                    value={position}
+                    onChange={(e) => setPosition(e.target.value)}
+                    className="w-full px-3 sm:px-4 py-2 rounded-lg bg-gray-800 text-white border border-gray-600 focus:border-purple-500 focus:ring-2 focus:ring-purple-500 focus:outline-none text-sm sm:text-base"
+                  >
+                    <option value="">Select a position</option>
+                    {technicalRoles.map((role) => (
+                      <option key={role} value={role}>
+                        {role}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="max-w-[95%] sm:max-w-md mx-auto">
+                  <h3 className="text-lg sm:text-xl font-semibold mb-3 text-purple-300">
+                    Upload Your Resume:
+                  </h3>
+                  <div className="flex flex-col items-center space-y-3 sm:space-y-4">
+                    <input
+                      type="file"
+                      accept=".pdf"
+                      onChange={(e) => setResumeFile(e.target.files[0])}
+                      className="block w-full text-xs sm:text-sm text-gray-300
+                        file:mr-2 sm:file:mr-4 file:py-1 sm:file:py-2 file:px-2 sm:file:px-4
+                        file:rounded-lg file:border-0
+                        file:text-xs sm:file:text-sm file:font-semibold
+                        file:bg-purple-600 file:text-white
+                        hover:file:bg-purple-700
+                        cursor-pointer"
+                    />
+                    <p className="text-xs sm:text-sm text-gray-400">
+                      Only PDF files are accepted
+                    </p>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
 
@@ -199,8 +244,8 @@ export default function InterviewTypeSelector() {
         <div className="text-center">
           <button
             onClick={handleContinue}
-            disabled={isUploading}
-            className={`px-6 sm:px-8 py-2 sm:py-3 rounded-xl text-white font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 text-sm sm:text-base ${selectedType === "resume" && !resumeFile
+            disabled={isUploading || (selectedType === "resume" && !existingResume && !resumeFile)}
+            className={`px-6 sm:px-8 py-2 sm:py-3 rounded-xl text-white font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 text-sm sm:text-base ${selectedType === "resume" && !existingResume && !resumeFile
               ? "bg-gray-600 cursor-not-allowed"
               : selectedType === "resume"
                 ? "bg-purple-600 hover:bg-purple-700"

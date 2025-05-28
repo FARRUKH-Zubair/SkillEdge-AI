@@ -29,6 +29,9 @@
     "@radix-ui/react-select": "^2.1.5",
     "@radix-ui/react-slot": "^1.1.1",
     "@radix-ui/react-tabs": "^1.1.2",
+    "@react-three/drei": "^10.0.8",
+    "@react-three/fiber": "^9.1.2",
+    "@react-three/postprocessing": "^3.0.4",
     "@supabase/supabase-js": "^2.49.8",
     "@uiw/react-md-editor": "^4.0.5",
     "axios": "^1.9.0",
@@ -51,6 +54,7 @@
     "sonner": "^1.7.2",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
+    "three": "^0.176.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {

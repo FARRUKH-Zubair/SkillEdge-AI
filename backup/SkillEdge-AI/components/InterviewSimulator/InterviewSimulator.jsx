@@ -1,11 +1,154 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { XCircle, Camera, Mic } from "lucide-react";
+import Image from "next/image";
+import { Canvas } from "@react-three/fiber";
+import { OrbitControls } from "@react-three/drei";
+
+// Extracted components for better organization
+const LoadingOverlay = () => (
+  <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-800 bg-opacity-75 z-10">
+    <div className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+    <p className="mt-4 text-white text-base sm:text-lg">Generating Questions...</p>
+  </div>
+);
+
+const InterviewHeader = ({ role }) => (
+  <h1 className="absolute top-20 sm:top-24 left-1/2 transform -translate-x-1/2 text-xl sm:text-3xl font-bold text-white text-center w-full px-4">
+    {`Interview of ${role}`}
+  </h1>
+);
+
+// Simple avatar image component
+function AvatarImage() {
+  return (
+    <div className="relative w-full h-full flex items-center justify-center">
+      <Image
+        src="/avatar.jpg"
+        alt="Avatar"
+        fill
+        className="object-cover rounded-full"
+        style={{ zIndex: 1 }}
+      />
+    </div>
+  );
+}
+
+const AvatarSection = ({ videoRef }) => (
+  <motion.div
+    className="w-full sm:w-1/3 flex flex-col items-center gap-4 sm:gap-6"
+    initial={{ opacity: 0, y: -20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.5 }}
+  >
+    <div className="w-32 h-32 sm:w-48 sm:h-48 rounded-full border-4 border-blue-500 overflow-hidden relative group bg-gray-900">
+      <AvatarImage />
+      <div className="absolute inset-0 bg-gradient-to-t from-blue-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+    </div>
+    <video
+      ref={videoRef}
+      autoPlay
+      playsInline
+      className="w-full sm:w-64 h-36 sm:h-48 rounded-xl border border-gray-600 object-cover scale-x-[-1] transition-transform duration-300"
+    />
+  </motion.div>
+);
+
+const QuestionDisplay = ({ currentIndex, question }) => (
+  <div className="bg-gray-800 p-4 sm:p-6 rounded-xl border border-gray-700">
+    <h2 className="text-lg sm:text-xl font-bold mb-2">{`Question ${currentIndex + 1}`}</h2>
+    <p className="text-base sm:text-lg text-blue-300 min-h-[48px]">{question}</p>
+  </div>
+);
+
+const AnswerSection = ({
+  answer,
+  setAnswer,
+  setSpoken,
+  transcribing,
+  timeLeft,
+  formatTime,
+  startListening,
+  stopListening,
+  handleSubmit,
+  canStart,
+  canStop,
+  canSubmit,
+  startLabel,
+  submitLabel,
+  hoveredButton,
+  setHoveredButton
+}) => {
+  const btnClass = useCallback((enabled) =>
+    `${enabled ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-700 cursor-not-allowed"} px-6 py-2 rounded-lg text-white flex items-center`,
+    []
+  );
+
+  return (
+    <div className="bg-gray-800 p-4 sm:p-6 rounded-xl border border-gray-700 space-y-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+        <h2 className="text-lg sm:text-xl font-bold">Your Answer</h2>
+        <div className={`text-base sm:text-lg font-semibold ${timeLeft <= 30 ? 'text-red-500 animate-pulse' : 'text-blue-400'}`}>
+          Time Left: {formatTime(timeLeft)}
+        </div>
+      </div>
+      <textarea
+        value={answer}
+        onChange={(e) => {
+          setAnswer(e.target.value);
+          setSpoken(!!e.target.value);
+        }}
+        disabled={transcribing}
+        className="w-full h-24 sm:h-32 p-3 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none text-sm sm:text-base"
+        placeholder="Type your answer here..."
+      />
+      <div className="flex flex-wrap gap-2 sm:gap-4 items-center">
+        <button
+          onMouseEnter={() => setHoveredButton("start")}
+          onMouseLeave={() => setHoveredButton(null)}
+          onClick={startListening}
+          disabled={!canStart || timeLeft <= 0}
+          className={`${btnClass(canStart && timeLeft > 0)} text-sm sm:text-base w-full sm:w-auto`}
+        >
+          {startLabel}
+          {(!canStart || timeLeft <= 0) && hoveredButton === "start" && (
+            <XCircle className="ml-2 text-red-500" />
+          )}
+        </button>
+        <button
+          onMouseEnter={() => setHoveredButton("stop")}
+          onMouseLeave={() => setHoveredButton(null)}
+          onClick={stopListening}
+          disabled={!canStop}
+          className={`${btnClass(canStop)} text-sm sm:text-base w-full sm:w-auto`}
+        >
+          Stop Speaking
+          {!canStop && hoveredButton === "stop" && (
+            <XCircle className="ml-2 text-red-500" />
+          )}
+        </button>
+        <button
+          onMouseEnter={() => setHoveredButton("submit")}
+          onMouseLeave={() => setHoveredButton(null)}
+          onClick={handleSubmit}
+          disabled={!canSubmit}
+          className={`${btnClass(canSubmit)} text-sm sm:text-base w-full sm:w-auto`}
+        >
+          {submitLabel}
+          {!canSubmit && hoveredButton === "submit" && (
+            <XCircle className="ml-2 text-red-500" />
+          )}
+        </button>
+      </div>
+    </div>
+  );
+};
 
 export default function InterviewSimulatorWithVoice() {
+  // State management
   const [started, setStarted] = useState(false);
   const [questions, setQuestions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -19,20 +162,42 @@ export default function InterviewSimulatorWithVoice() {
   const [timeLeft, setTimeLeft] = useState(180);
   const [timerActive, setTimerActive] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+
+  // Refs
   const timerRef = useRef(null);
   const recognitionRef = useRef(null);
   const videoRef = useRef(null);
+
+  // Router and params
   const router = useRouter();
   const searchParams = useSearchParams();
   const type = searchParams.get("type") || "technical";
-  const role = type === "technical"
-    ? searchParams.get("role") || "Software Engineer"
-    : type === "behavioral"
-      ? "behavioral"
-      : "resume";
+  const role = useMemo(() =>
+    type === "technical"
+      ? searchParams.get("role") || "Software Engineer"
+      : type === "behavioral"
+        ? "behavioral"
+        : "resume",
+    [type, searchParams]
+  );
 
+  // Memoized values
+  const canStart = useMemo(() => !transcribing, [transcribing]);
+  const canStop = useMemo(() => transcribing, [transcribing]);
+  const canSubmit = useMemo(() => !transcribing && spoken, [transcribing, spoken]);
+  const startLabel = useMemo(() =>
+    transcribing
+      ? "Speaking..."
+      : spoken
+        ? "Continue Speaking"
+        : "Start Speaking",
+    [transcribing, spoken]
+  );
+  const isLast = useMemo(() => currentIndex === questions.length - 1, [currentIndex, questions.length]);
+  const submitLabel = useMemo(() => isLast ? "Finish Interview" : "Submit & Next", [isLast]);
+
+  // Device check
   useEffect(() => {
-    // Check if device is mobile
     const checkMobile = () => {
       const userAgent = navigator.userAgent || navigator.vendor || window.opera;
       const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
@@ -41,6 +206,7 @@ export default function InterviewSimulatorWithVoice() {
     checkMobile();
   }, []);
 
+  // Start interview
   useEffect(() => {
     if (started) {
       if (!isMobile) {
@@ -50,19 +216,31 @@ export default function InterviewSimulatorWithVoice() {
     }
   }, [started, isMobile]);
 
-  const enableWebcam = async () => {
+  // Cleanup
+  useEffect(() => {
+    return () => {
+      stopTimer();
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
+
+  // Webcam setup
+  const enableWebcam = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: true,
-        audio: false  // Disable audio input to prevent echo
+        audio: false
       });
       if (videoRef.current) videoRef.current.srcObject = stream;
     } catch (err) {
       console.error("Media access denied or not supported:", err);
     }
-  };
+  }, []);
 
-  const fetchAllQuestions = async () => {
+  // Question fetching
+  const fetchAllQuestions = useCallback(async () => {
     setLoadingQuestions(true);
     try {
       const res = await fetch(
@@ -86,14 +264,15 @@ export default function InterviewSimulatorWithVoice() {
     } finally {
       setLoadingQuestions(false);
     }
-  };
+  }, [type, role]);
 
-  const playQuestion = async (index, qs) => {
+  // Question playback
+  const playQuestion = useCallback(async (index, qs) => {
     setCurrentIndex(index);
     const text = qs[index];
     setSpoken(false);
     setAnswer("");
-    setTimeLeft(180); // Reset timer for new question
+    setTimeLeft(180);
     setCountdown(3);
     for (let i = 3; i > 0; i--) {
       setCountdown(i);
@@ -101,15 +280,19 @@ export default function InterviewSimulatorWithVoice() {
     }
     setCountdown(null);
     speakText(text);
-  };
+  }, []);
 
-  const speakText = (text) => {
+  // Text-to-speech
+  const speakText = useCallback((text) => {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "en-US";
+    utterance.onstart = () => setSpoken(true);
+    utterance.onend = () => setSpoken(false);
     speechSynthesis.speak(utterance);
-  };
+  }, []);
 
-  const startListening = () => {
+  // Speech recognition
+  const startListening = useCallback(() => {
     if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
       alert("Your browser doesn't support Speech Recognition");
       return;
@@ -159,12 +342,11 @@ export default function InterviewSimulatorWithVoice() {
       console.error("Error starting speech recognition:", err);
       alert("Error starting speech recognition. Please try again.");
     }
-  };
+  }, [timeLeft]);
 
-  const stopListening = () => {
+  const stopListening = useCallback(() => {
     if (recognitionRef.current) {
       recognitionRef.current.stop();
-      // Stop all tracks in the media stream
       const tracks = recognitionRef.current.stream?.getTracks() || [];
       tracks.forEach(track => track.stop());
     }
@@ -172,9 +354,10 @@ export default function InterviewSimulatorWithVoice() {
     setTimerActive(false);
     stopTimer();
     setSpoken(true);
-  };
+  }, []);
 
-  const startTimer = () => {
+  // Timer management
+  const startTimer = useCallback(() => {
     if (timerRef.current) return;
     timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
@@ -186,29 +369,23 @@ export default function InterviewSimulatorWithVoice() {
         return prev - 1;
       });
     }, 1000);
-  };
+  }, []);
 
-  const stopTimer = () => {
+  const stopTimer = useCallback(() => {
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
-  };
+  }, []);
 
-  const formatTime = (seconds) => {
+  const formatTime = useCallback((seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  useEffect(() => {
-    return () => {
-      stopTimer();
-    };
   }, []);
 
-  const handleSubmit = async () => {
-    // (optional) send to evaluation API
+  // Answer submission
+  const handleSubmit = useCallback(async () => {
     try {
       const evalRes = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/interview/evaluate-answer`,
@@ -228,21 +405,18 @@ export default function InterviewSimulatorWithVoice() {
       console.error(err);
     }
 
-    // 1) store the current answer
     setAnswers((prev) => [...prev, answer]);
 
-    // 2) either advance or finish
     if (currentIndex < questions.length - 1) {
       playQuestion(currentIndex + 1, questions);
     } else {
-      // last question → persist and redirect
       const payload = { questions, answers: [...answers, answer] };
       localStorage.setItem("interviewResults", JSON.stringify(payload));
       router.push("/interview/complete");
     }
-  };
+  }, [questions, currentIndex, answer, role, answers, playQuestion, router]);
 
-  const handleTerminate = () => {
+  const handleTerminate = useCallback(() => {
     if (
       window.confirm(
         "Terminating now will lose all progress. Are you sure you want to terminate the interview?"
@@ -250,7 +424,7 @@ export default function InterviewSimulatorWithVoice() {
     ) {
       router.push("/");
     }
-  };
+  }, [router]);
 
   if (!started) {
     return (
@@ -266,27 +440,9 @@ export default function InterviewSimulatorWithVoice() {
     );
   }
 
-  const canStart = !transcribing;
-  const canStop = transcribing;
-  const canSubmit = !transcribing && spoken;
-  const startLabel = transcribing
-    ? "Speaking..."
-    : spoken
-      ? "Continue Speaking"
-      : "Start Speaking";
-  const btnClass = (enabled) =>
-    `${enabled ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-700 cursor-not-allowed"} px-6 py-2 rounded-lg text-white flex items-center`;
-  const isLast = currentIndex === questions.length - 1;
-  const submitLabel = isLast ? "Finish Interview" : "Submit & Next";
-
   return (
     <div className="relative min-h-screen bg-gray-950 text-white p-4 sm:p-8">
-      {loadingQuestions && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-800 bg-opacity-75 z-10">
-          <div className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-          <p className="mt-4 text-white text-base sm:text-lg">Generating Questions...</p>
-        </div>
-      )}
+      {loadingQuestions && <LoadingOverlay />}
 
       <button
         onClick={handleTerminate}
@@ -295,30 +451,13 @@ export default function InterviewSimulatorWithVoice() {
         Terminate Interview
       </button>
 
-      <h1 className="absolute top-20 sm:top-24 left-1/2 transform -translate-x-1/2 text-xl sm:text-3xl font-bold text-white text-center w-full px-4">
-        {`Interview of ${role}`}
-      </h1>
+      <InterviewHeader role={role} />
 
       <div className="mt-28 sm:mt-32 flex flex-col sm:flex-row items-center justify-center w-full max-w-7xl mx-auto gap-6 sm:gap-10 opacity-90">
         {!isMobile && (
-          <motion.div
-            className="w-full sm:w-1/3 flex flex-col items-center gap-4 sm:gap-6"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <img
-              src="https://img.freepik.com/free-vector/graident-ai-robot-vectorart_78370-4114.jpg"
-              alt="Robot Avatar"
-              className="w-32 h-32 sm:w-48 sm:h-48 rounded-full border-4 border-blue-500"
-            />
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              className="w-full sm:w-64 h-36 sm:h-48 rounded-xl border border-gray-600 object-cover scale-x-[-1]"
-            />
-          </motion.div>
+          <AvatarSection
+            videoRef={videoRef}
+          />
         )}
 
         <div className={`w-full ${!isMobile ? 'sm:w-2/3' : ''} space-y-4 sm:space-y-6`}>
@@ -328,70 +467,29 @@ export default function InterviewSimulatorWithVoice() {
             </div>
           )}
 
-          <div className="bg-gray-800 p-4 sm:p-6 rounded-xl border border-gray-700">
-            <h2 className="text-lg sm:text-xl font-bold mb-2">{`Question ${currentIndex + 1}`}</h2>
-            <p className="text-base sm:text-lg text-blue-300 min-h-[48px]">
-              {questions[currentIndex]}
-            </p>
-          </div>
+          <QuestionDisplay
+            currentIndex={currentIndex}
+            question={questions[currentIndex]}
+          />
 
-          <div className="bg-gray-800 p-4 sm:p-6 rounded-xl border border-gray-700 space-y-4">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-              <h2 className="text-lg sm:text-xl font-bold">Your Answer</h2>
-              <div className={`text-base sm:text-lg font-semibold ${timeLeft <= 30 ? 'text-red-500 animate-pulse' : 'text-blue-400'}`}>
-                Time Left: {formatTime(timeLeft)}
-              </div>
-            </div>
-            <textarea
-              value={answer}
-              onChange={(e) => {
-                setAnswer(e.target.value);
-                setSpoken(!!e.target.value);
-              }}
-              disabled={transcribing}
-              className="w-full h-24 sm:h-32 p-3 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none text-sm sm:text-base"
-              placeholder="Type your answer here..."
-            />
-
-            <div className="flex flex-wrap gap-2 sm:gap-4 items-center">
-              <button
-                onMouseEnter={() => setHoveredButton("start")}
-                onMouseLeave={() => setHoveredButton(null)}
-                onClick={startListening}
-                disabled={!canStart || timeLeft <= 0}
-                className={`${btnClass(canStart && timeLeft > 0)} text-sm sm:text-base w-full sm:w-auto`}
-              >
-                {startLabel}
-                {(!canStart || timeLeft <= 0) && hoveredButton === "start" && (
-                  <XCircle className="ml-2 text-red-500" />
-                )}
-              </button>
-              <button
-                onMouseEnter={() => setHoveredButton("stop")}
-                onMouseLeave={() => setHoveredButton(null)}
-                onClick={stopListening}
-                disabled={!canStop}
-                className={`${btnClass(canStop)} text-sm sm:text-base w-full sm:w-auto`}
-              >
-                Stop Speaking
-                {!canStop && hoveredButton === "stop" && (
-                  <XCircle className="ml-2 text-red-500" />
-                )}
-              </button>
-              <button
-                onMouseEnter={() => setHoveredButton("submit")}
-                onMouseLeave={() => setHoveredButton(null)}
-                onClick={handleSubmit}
-                disabled={!canSubmit}
-                className={`${btnClass(canSubmit)} text-sm sm:text-base w-full sm:w-auto`}
-              >
-                {submitLabel}
-                {!canSubmit && hoveredButton === "submit" && (
-                  <XCircle className="ml-2 text-red-500" />
-                )}
-              </button>
-            </div>
-          </div>
+          <AnswerSection
+            answer={answer}
+            setAnswer={setAnswer}
+            setSpoken={setSpoken}
+            transcribing={transcribing}
+            timeLeft={timeLeft}
+            formatTime={formatTime}
+            startListening={startListening}
+            stopListening={stopListening}
+            handleSubmit={handleSubmit}
+            canStart={canStart}
+            canStop={canStop}
+            canSubmit={canSubmit}
+            startLabel={startLabel}
+            submitLabel={submitLabel}
+            hoveredButton={hoveredButton}
+            setHoveredButton={setHoveredButton}
+          />
         </div>
       </div>
     </div>
